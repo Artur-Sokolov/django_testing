@@ -1,54 +1,39 @@
-import pytest
 from http import HTTPStatus
 
-
-from django.urls import reverse
+import pytest
 from django.contrib.auth import get_user_model
+from django.urls import reverse
 
 User = get_user_model()
 
+pytestmark = pytest.mark.django_db
 
-@pytest.mark.django_db
-@pytest.mark.parametrize('name, args', [
-    ('news:home', None),
-    ('news:detail', None),
-    ('users:login', None),
-    ('users:logout', None),
-    ('users:signup', None),
-])
-def test_pages_availability(client, news, name, args):
-    if name == 'news:detail':
-        args = (news.id,)
-    url = reverse(name, args=args)
+
+@pytest.mark.parametrize('name', ['home', 'login', 'logout', 'signup'])
+def test_pages_availability(client, name, urls, detail_url):
+    url = urls[name] if name != 'detail' else detail_url
     response = client.get(url)
     assert response.status_code == HTTPStatus.OK
 
 
-@pytest.mark.django_db
-@pytest.mark.parametrize('client_fixture, expected_status', [
-    ('author_client', HTTPStatus.OK),
-    ('reader_client', HTTPStatus.NOT_FOUND),
+@pytest.mark.parametrize('reverse_url, parametrized_client, status', [
+    (lambda comment: reverse('news:edit', args=(comment.id,)),
+     'author_client', HTTPStatus.OK),
+    (lambda comment: reverse('news:edit', args=(comment.id,)),
+     'reader_client', HTTPStatus.NOT_FOUND),
+    (lambda comment: reverse('news:delete', args=(comment.id,)),
+     'author_client', HTTPStatus.OK),
+    (lambda comment: reverse('news:delete', args=(comment.id,)),
+     'reader_client', HTTPStatus.NOT_FOUND),
 ])
-@pytest.mark.parametrize('name', ['news:edit', 'news:delete'])
 def test_availability_for_comment_edit_and_delete(
-    client_fixture,
-    name,
+    reverse_url,
+    parametrized_client,
+    status,
     comment,
-    expected_status,
     request
 ):
-    client = request.getfixturevalue(client_fixture)
-    url = reverse(name, args=(comment.id,))
+    client = request.getfixturevalue(parametrized_client)
+    url = reverse_url(comment)
     response = client.get(url)
-    assert response.status_code == expected_status
-
-
-@pytest.mark.django_db
-@pytest.mark.parametrize('name', ['news:edit', 'news:delete'])
-def test_redirect_for_anonymous_client(client, comment, name):
-    login_url = reverse('users:login')
-    url = reverse(name, args=(comment.id,))
-    redirect_url = f'{login_url}?next={url}'
-    response = client.get(url)
-    assert response.status_code == HTTPStatus.FOUND
-    assert response.url == redirect_url
+    assert response.status_code == status

@@ -1,13 +1,12 @@
-import pytest
 from datetime import timedelta
 
-from django.test import Client
+import pytest
 from django.contrib.auth import get_user_model
+from django.test import Client
 from django.urls import reverse
 from django.utils import timezone
 
 from news.models import News, Comment
-from news.forms import BAD_WORDS
 
 User = get_user_model()
 
@@ -62,26 +61,24 @@ def detail_url(news):
 
 @pytest.fixture
 def news_list(db):
-    news = []
+    now = timezone.now()
     for i in range(10):
-        news.append(News.objects.create(
-            title=f'Тестовая новость {i}', text='Просто текст.'
-        ))
-    return news
+        News.objects.create(
+            title=f'Тестовая новость {i}',
+            text='Просто текст.',
+            date=now - timedelta(days=i)
+        )
 
 
 @pytest.fixture
 def comments_for_news(news, author):
     now = timezone.now()
-    comments = []
     for index in range(10):
         comment = Comment.objects.create(
             news=news, author=author, text=f'Текст {index}',
         )
         comment.created = now + timedelta(days=index)
         comment.save()
-        comments.append(comment)
-    return comments
 
 
 @pytest.fixture
@@ -100,15 +97,15 @@ def delete_url(comment):
 
 
 @pytest.fixture
-def form_data():
-    return {'text': 'Текст комментария'}
+def urls():
+    return {
+        'home': reverse('news:home'),
+        'login': reverse('users:login'),
+        'logout': reverse('users:logout'),
+        'signup': reverse('users:signup'),
+    }
 
 
 @pytest.fixture
-def new_form_data():
-    return {'text': 'Обновлённый комментарий'}
-
-
-@pytest.fixture
-def bad_words_data():
-    return {'text': f'Какой-то текст, {BAD_WORDS[0]}, еще текст'}
+def detail_url(news):
+    return reverse('news:detail', args=(news.id,))
