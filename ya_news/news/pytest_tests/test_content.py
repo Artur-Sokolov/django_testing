@@ -1,21 +1,18 @@
 from django.conf import settings
-from django.contrib.auth import get_user_model
 
 from news.forms import CommentForm
-
-User = get_user_model()
 
 
 def test_news_count(client, home_url, news_list):
     response = client.get(home_url)
-    assert response.context['object_list'].count() == \
-           settings.NEWS_COUNT_ON_HOME_PAGE
+    assert response.context['object_list'].count() == (settings.
+                                                       NEWS_COUNT_ON_HOME_PAGE)
 
 
 def test_news_order(client, home_url, news_list):
     response = client.get(home_url)
-    object_list = response.context['object_list']
-    all_dates = [news.date for news in object_list]
+    object_news = response.context['object_list']
+    all_dates = [news.date for news in object_news]
     sorted_dates = sorted(all_dates, reverse=True)
     assert all_dates == sorted_dates
 

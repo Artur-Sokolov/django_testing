@@ -6,14 +6,9 @@ from django.test import Client
 from django.urls import reverse
 from django.utils import timezone
 
-from news.models import News, Comment
+from news.models import Comment, News
 
 User = get_user_model()
-
-
-@pytest.fixture
-def news(db):
-    return News.objects.create(title='Заголовок', text='Текст')
 
 
 @pytest.fixture
@@ -24,15 +19,6 @@ def author(db, django_user_model):
 @pytest.fixture
 def reader(db, django_user_model):
     return django_user_model.objects.create(username='Reader')
-
-
-@pytest.fixture
-def comment(db, news, author):
-    return Comment.objects.create(
-        news=news,
-        author=author,
-        text='Текст комментария'
-    )
 
 
 @pytest.fixture
@@ -50,13 +36,17 @@ def reader_client(db, reader):
 
 
 @pytest.fixture
-def home_url():
-    return reverse('news:home')
+def news(db):
+    return News.objects.create(title='Заголовок', text='Текст')
 
 
 @pytest.fixture
-def detail_url(news):
-    return reverse('news:detail', args=(news.id,))
+def comment(db, news, author):
+    return Comment.objects.create(
+        news=news,
+        author=author,
+        text='Текст комментария'
+    )
 
 
 @pytest.fixture
@@ -82,6 +72,16 @@ def comments_for_news(news, author):
 
 
 @pytest.fixture
+def home_url():
+    return reverse('news:home')
+
+
+@pytest.fixture
+def detail_url(news):
+    return reverse('news:detail', args=(news.id,))
+
+
+@pytest.fixture
 def url_to_comments(detail_url):
     return f'{detail_url}#comments'
 
@@ -99,13 +99,8 @@ def delete_url(comment):
 @pytest.fixture
 def urls():
     return {
-        'home': reverse('news:home'),
+        'detail': reverse('news:detail', args=(1,)),
         'login': reverse('users:login'),
         'logout': reverse('users:logout'),
         'signup': reverse('users:signup'),
     }
-
-
-@pytest.fixture
-def detail_url(news):
-    return reverse('news:detail', args=(news.id,))

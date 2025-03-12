@@ -1,11 +1,7 @@
 from http import HTTPStatus
 
-from django.contrib.auth import get_user_model
-
-from news.forms import WARNING, BAD_WORDS
+from news.forms import BAD_WORDS, WARNING
 from news.models import Comment
-
-User = get_user_model()
 
 
 FORM_DATA = {'text': 'Текст комментария'}
@@ -25,12 +21,12 @@ def test_user_can_create_comment(
     news,
     author
 ):
-    initial_count = Comment.objects.count()
+    Comment.objects.all().delete()
     response = author_client.post(detail_url, data=FORM_DATA)
     assert response.status_code == HTTPStatus.FOUND
     assert response.url == f'{detail_url}#comments'
-    assert Comment.objects.count() == initial_count + 1
-    comment = Comment.objects.last()
+    assert Comment.objects.count() == 1
+    comment = Comment.objects.get()
     assert comment.text == FORM_DATA['text']
     assert comment.news == news
     assert comment.author == author
@@ -44,43 +40,38 @@ def test_user_cant_use_bad_words(author_client, detail_url):
 
 
 def test_author_can_delete_comment(author_client, delete_url, url_to_comments):
+    initial_count = Comment.objects.count()
     response = author_client.delete(delete_url)
     assert response.status_code == HTTPStatus.FOUND
     assert response.url == url_to_comments
-    comments_count = Comment.objects.count()
-    assert comments_count == 0
+    assert Comment.objects.count() == initial_count - 1
 
 
 def test_user_cant_delete_comment_of_another_user(reader_client, delete_url):
+    initial_count = Comment.objects.count()
     response = reader_client.delete(delete_url)
     assert response.status_code == HTTPStatus.NOT_FOUND
-    comments_count = Comment.objects.count()
-    assert comments_count == 1
+    assert Comment.objects.count() == initial_count
 
 
 def test_author_can_edit_comment(author_client, edit_url,
                                  url_to_comments, comment):
-    original_author = comment.author
-    original_news = comment.news
     response = author_client.post(edit_url, data=NEW_FORM_DATA)
     assert response.status_code == HTTPStatus.FOUND
     assert response.url == url_to_comments
     updated_comment = Comment.objects.get(id=comment.id)
     assert updated_comment.text == NEW_FORM_DATA['text']
-    assert updated_comment.author == original_author
-    assert updated_comment.news == original_news
+    assert updated_comment.author == comment.author
+    assert updated_comment.news == comment.news
 
 
 def test_user_cant_edit_comment_of_another_user(reader_client,
                                                 edit_url,
                                                 comment
                                                 ):
-    original_text = comment.text
-    original_author = comment.author
-    original_news = comment.news
     response = reader_client.post(edit_url, data=NEW_FORM_DATA)
     assert response.status_code == HTTPStatus.NOT_FOUND
     updated_comment = Comment.objects.get(id=comment.id)
-    assert updated_comment.text == original_text
-    assert updated_comment.author == original_author
-    assert updated_comment.news == original_news
+    assert updated_comment.text == comment.text
+    assert updated_comment.author == comment.author
+    assert updated_comment.news == comment.news
