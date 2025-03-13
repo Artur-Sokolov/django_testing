@@ -1,3 +1,5 @@
+from http import HTTPStatus
+
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
@@ -20,6 +22,7 @@ class BaseTestCase(TestCase):
         cls.user1 = User.objects.create_user(username='user1')
         cls.user2 = User.objects.create(username='user2')
         cls.author = User.objects.create_user(username='author')
+        cls.reader = User.objects.create(username='Читатель простой')
 
         cls.note1 = Note.objects.create(
             title='Заметка пользователя 1',
@@ -62,6 +65,11 @@ class BaseTestCase(TestCase):
         cls.auth_client.force_login(cls.author)
         cls.other_client = Client()
         cls.other_client.force_login(cls.user1)
+        cls.author_client = Client()
+        cls.author_client.force_login(cls.author)
+        cls.reader_client = cls.client_class()
+        cls.reader_client.force_login(cls.reader)
+        cls.anonymous_client = cls.client_class()
 
         cls.note_data = {
             'title': 'Новая заметка',
@@ -83,3 +91,31 @@ class BaseTestCase(TestCase):
             'text': cls.NEW_NOTE_TEXT,
             'slug': cls.note.slug
         }
+
+        cls.urls_anonymous = (
+            (reverse('notes:home'), HTTPStatus.OK),
+            (reverse('notes:list'), HTTPStatus.FOUND),
+            (reverse('notes:detail', args=['initial-slug']), HTTPStatus.FOUND),
+            (reverse('notes:add'), HTTPStatus.FOUND),
+            (reverse('notes:edit', args=['initial-slug']), HTTPStatus.FOUND),
+            (reverse('notes:delete', args=['initial-slug']), HTTPStatus.FOUND),
+            (reverse('notes:success'), HTTPStatus.FOUND),
+        )
+
+        cls.urls_authorized_author = (
+            (reverse('notes:list'), HTTPStatus.OK),
+            (reverse('notes:detail', args=['initial-slug']), HTTPStatus.OK),
+            (reverse('notes:add'), HTTPStatus.OK),
+            (reverse('notes:edit', args=['initial-slug']), HTTPStatus.OK),
+            (reverse('notes:delete', args=['initial-slug']), HTTPStatus.OK),
+            (reverse('notes:success'), HTTPStatus.OK),
+        )
+
+        cls.urls_redirect_anonymous = (
+            (reverse('notes:edit', args=['initial-slug']), 'notes:edit'),
+            (reverse('notes:delete', args=['initial-slug']), 'notes:delete'),
+            (reverse('notes:detail', args=['initial-slug']), 'notes:detail'),
+            (reverse('notes:add'), 'notes:add'),
+            (reverse('notes:success'), 'notes:success'),
+            (reverse('notes:list'), 'notes:list'),
+        )
