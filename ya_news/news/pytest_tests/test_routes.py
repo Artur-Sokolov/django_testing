@@ -1,6 +1,5 @@
 from http import HTTPStatus
 
-from django.urls import reverse
 import pytest
 from pytest_lazyfixture import lazy_fixture as lf
 
@@ -11,15 +10,6 @@ pytestmark = pytest.mark.django_db
 OK = HTTPStatus.OK
 NOT_FOUND = HTTPStatus.NOT_FOUND
 FOUND = HTTPStatus.FOUND
-
-
-@pytest.fixture
-def precomputed_urls():
-    return {
-        'login': reverse('users:login'),
-        'logout': reverse('users:logout'),
-        'signup': reverse('users:signup'),
-    }
 
 
 @pytest.mark.parametrize(
@@ -44,13 +34,6 @@ def test_pages_availability(
     url = reverse_url[precomputed_key] if precomputed_key else reverse_url
     response = client.get(url)
     assert response.status_code == expected_status
-
-
-@pytest.fixture
-def redirect_url_for_anonymous(precomputed_urls):
-    def _redirect_url(url):
-        return f"{precomputed_urls['login']}?next={url}"
-    return _redirect_url
 
 
 @pytest.mark.parametrize(

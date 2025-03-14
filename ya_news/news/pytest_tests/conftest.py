@@ -104,3 +104,19 @@ def urls():
         'logout': reverse('users:logout'),
         'signup': reverse('users:signup'),
     }
+
+
+@pytest.fixture
+def precomputed_urls():
+    return {
+        'login': reverse('users:login'),
+        'logout': reverse('users:logout'),
+        'signup': reverse('users:signup'),
+    }
+
+
+@pytest.fixture
+def redirect_url_for_anonymous(precomputed_urls):
+    def _redirect_url(url):
+        return f"{precomputed_urls['login']}?next={url}"
+    return _redirect_url
