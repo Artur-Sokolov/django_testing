@@ -99,7 +99,7 @@ def delete_url(comment):
 @pytest.fixture
 def urls():
     return {
-        'detail': reverse('news:detail', args=(1,)),
+        'detail': detail_url,
         'login': reverse('users:login'),
         'logout': reverse('users:logout'),
         'signup': reverse('users:signup'),
