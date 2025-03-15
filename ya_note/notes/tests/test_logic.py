@@ -10,6 +10,11 @@ from .test_base import BaseTestCase
 User = get_user_model()
 
 
+OK = HTTPStatus.OK
+FOUND = HTTPStatus.FOUND
+NOT_FOUND = HTTPStatus.NOT_FOUND
+
+
 class TestNoteLogic(BaseTestCase):
     def test_anonymus_user_cant_create_note(self):
         """Анонимный пользователь не может создать заметку."""
@@ -21,11 +26,12 @@ class TestNoteLogic(BaseTestCase):
 
     def test_user_can_create_note(self):
         """Залогиненный пользователь может создать заметку."""
+        Note.objects.all().delete()
         note_count_before = Note.objects.count()
         response = self.auth_client.post(self.add_url, data=self.note_data)
-        self.assertEqual(response.status_code, HTTPStatus.FOUND)
+        self.assertEqual(response.status_code, FOUND)
         self.assertEqual(Note.objects.count(), note_count_before + 1)
-        new_note = Note.objects.get(slug=self.NEW_NOTE_SLUG)
+        new_note = Note.objects.get()
         self.assertEqual(new_note.title, self.note_data['title'])
         self.assertEqual(new_note.text, self.note_data['text'])
         self.assertEqual(new_note.author, self.author)
@@ -37,7 +43,7 @@ class TestNoteLogic(BaseTestCase):
             self.add_url,
             data=self.duplicate_note_data
         )
-        self.assertEqual(response.status_code, HTTPStatus.OK)
+        self.assertEqual(response.status_code, OK)
         self.assertEqual(Note.objects.count(), note_count_before)
         expected_error = (f'{self.DUPLICATE_SLUG}{WARNING}')
         self.assertFormError(response, 'form', 'slug', expected_error)
@@ -49,7 +55,8 @@ class TestNoteLogic(BaseTestCase):
             self.add_url,
             data=self.note_data_empty_slug
         )
-        self.assertEqual(responce.status_code, HTTPStatus.FOUND)
+        self.assertEqual(responce.status_code, FOUND)
+        self.assertEqual(Note.objects.count(), 1)
         expected_slug = slugify(self.note_data_empty_slug['title'])
         new_note = Note.objects.get()
         self.assertEqual(new_note.slug, expected_slug)
@@ -58,7 +65,7 @@ class TestNoteLogic(BaseTestCase):
         """Клиент может удалять свои заметки."""
         notes_count_before = Note.objects.count()
         response = self.auth_client.post(self.delete_url)
-        self.assertEqual(response.status_code, HTTPStatus.FOUND)
+        self.assertEqual(response.status_code, FOUND)
         self.assertEqual(
             Note.objects.count(),
             notes_count_before - self.NOTE_COUNT
@@ -73,7 +80,7 @@ class TestNoteLogic(BaseTestCase):
                 self.edit_url,
                 data=self.note_data
             )
-            self.assertEqual(response.status_code, HTTPStatus.FOUND)
+            self.assertEqual(response.status_code, NOT_FOUND)
             note_after = Note.objects.get(id=self.note.id)
             self.assertEqual(note_after.title, self.note.title)
             self.assertEqual(note_after.text, self.note.text)
@@ -83,16 +90,16 @@ class TestNoteLogic(BaseTestCase):
         with self.subTest('Test user cannot delete others note'):
             notes_count_before = Note.objects.count()
             response = self.other_client.post(self.delete_url)
-            self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
+            self.assertEqual(response.status_code, NOT_FOUND)
             self.assertEqual(Note.objects.count(), notes_count_before)
 
     def test_user_can_edit_own_note(self):
         """Пользователь может редактировать свои заметки."""
         response = self.auth_client.post(self.edit_url,
                                          data=self.edit_note_data)
-        self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
-        self.note.refresh_from_db()
-        self.assertEqual(self.note.title, self.NEW_NOTE_TITLE)
-        self.assertEqual(self.note.text, self.NEW_NOTE_TEXT)
-        self.assertEqual(self.note.slug, 'initial-slug')
-        self.assertEqual(self.note.author, self.author)
+        self.assertEqual(response.status_code, FOUND)
+        note_after = Note.objects.get(id=self.note.id)
+        self.assertEqual(note_after.title, self.NEW_NOTE_TITLE)
+        self.assertEqual(note_after.text, self.NEW_NOTE_TEXT)
+        self.assertEqual(note_after.slug, self.note.slug)
+        self.assertEqual(note_after.author, self.note.author)

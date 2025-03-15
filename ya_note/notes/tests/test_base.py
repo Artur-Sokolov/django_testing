@@ -8,6 +8,9 @@ from notes.models import Note
 
 User = get_user_model()
 
+OK = HTTPStatus.OK
+FOUND = HTTPStatus.FOUND
+
 
 class BaseTestCase(TestCase):
 
@@ -55,7 +58,7 @@ class BaseTestCase(TestCase):
         cls.login_url = reverse('users:login')
         cls.list_url = reverse('notes:list')
         cls.add_url = reverse('notes:add')
-        cls.edit_url = reverse('notes:edit', args=(cls.note1.slug,))
+        cls.edit_url = reverse('notes:edit', args=(cls.note.slug,))
 
         cls.client_user1 = cls.client_class()
         cls.client_user1.force_login(cls.user1)
@@ -65,11 +68,8 @@ class BaseTestCase(TestCase):
         cls.auth_client.force_login(cls.author)
         cls.other_client = Client()
         cls.other_client.force_login(cls.user1)
-        cls.author_client = Client()
-        cls.author_client.force_login(cls.author)
         cls.reader_client = cls.client_class()
         cls.reader_client.force_login(cls.reader)
-        cls.anonymous_client = cls.client_class()
 
         cls.note_data = {
             'title': 'Новая заметка',
@@ -92,30 +92,33 @@ class BaseTestCase(TestCase):
             'slug': cls.note.slug
         }
 
+        cls.home_url = reverse('notes:home')
+        cls.detail_url = reverse('notes:detail', args=[cls.note.slug])
+        cls.success_url = reverse('notes:success')
         cls.urls_anonymous = (
-            (reverse('notes:home'), HTTPStatus.OK),
-            (reverse('notes:list'), HTTPStatus.FOUND),
-            (reverse('notes:detail', args=['initial-slug']), HTTPStatus.FOUND),
-            (reverse('notes:add'), HTTPStatus.FOUND),
-            (reverse('notes:edit', args=['initial-slug']), HTTPStatus.FOUND),
-            (reverse('notes:delete', args=['initial-slug']), HTTPStatus.FOUND),
-            (reverse('notes:success'), HTTPStatus.FOUND),
+            (cls.home_url, OK),
+            (cls.list_url, FOUND),
+            (cls.detail_url, FOUND),
+            (cls.add_url, FOUND),
+            (cls.edit_url, FOUND),
+            (cls.delete_url, FOUND),
+            (cls.success_url, FOUND),
         )
 
         cls.urls_authorized_author = (
-            (reverse('notes:list'), HTTPStatus.OK),
-            (reverse('notes:detail', args=['initial-slug']), HTTPStatus.OK),
-            (reverse('notes:add'), HTTPStatus.OK),
-            (reverse('notes:edit', args=['initial-slug']), HTTPStatus.OK),
-            (reverse('notes:delete', args=['initial-slug']), HTTPStatus.OK),
-            (reverse('notes:success'), HTTPStatus.OK),
+            (cls.list_url, OK),
+            (cls.detail_url, OK),
+            (cls.add_url, OK),
+            (cls.edit_url, OK),
+            (cls.delete_url, OK),
+            (cls.success_url, OK),
         )
 
         cls.urls_redirect_anonymous = (
-            (reverse('notes:edit', args=['initial-slug']), 'notes:edit'),
-            (reverse('notes:delete', args=['initial-slug']), 'notes:delete'),
-            (reverse('notes:detail', args=['initial-slug']), 'notes:detail'),
-            (reverse('notes:add'), 'notes:add'),
-            (reverse('notes:success'), 'notes:success'),
-            (reverse('notes:list'), 'notes:list'),
+            (cls.edit_url, 'notes:edit'),
+            (cls.delete_url, 'notes:delete'),
+            (cls.detail_url, 'notes:detail'),
+            (cls.add_url, 'notes:add'),
+            (cls.success_url, 'notes:success'),
+            (cls.list_url, 'notes:list'),
         )
