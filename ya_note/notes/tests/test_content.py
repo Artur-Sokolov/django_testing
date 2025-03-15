@@ -16,7 +16,6 @@ class TestDetailPage(BaseTestCase):
         self.assertNotIn(self.note2, object_notes)
 
     def test_user_see_only_his_own_notes(self):
-        """Проверяем, что пользователь видит только свои заметки."""
         response = self.client_user2.get(self.list_url)
         self.assertEqual(response.status_code, OK)
         object_notes = response.context['object_list']
